@@ -1,5 +1,5 @@
 import gymnasium as gym
-env = gym.make("ALE/Assault-v5", render_mode="human")
+env = gym.make("ALE/SpaceInvaders-v5", render_mode="human")
 
 
 observation, info = env.reset()
