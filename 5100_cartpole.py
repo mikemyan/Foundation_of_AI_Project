@@ -6,6 +6,7 @@ import matrix_mdp
 import sys
 import matplotlib.pyplot as plt
 import time
+import pygame
 
 #######################################
 # 1. Initialize transition and reward matrices
