@@ -1,0 +1,25 @@
+"10000" file output parameters:
+
+cartpole:
+10k episodes
+BATCH_SIZE = 128
+GAMMA = 0.99
+EPS_START = 0.9
+EPS_END = 0.05
+EPS_DECAY = 1000
+TAU = 0.005
+LR = .0001
+
+lunar lander:
+
+space inavders:
+10k episodes
+BATCH_SIZE = 64
+GAMMA = 0.99
+EPS_START = 1.0
+EPS_END = 0.01
+EPS_DECAY = 1000
+TAU = 0.003
+LR = .0005
+BUFFER_SIZE = 50000
+max_timesteps = 1000
