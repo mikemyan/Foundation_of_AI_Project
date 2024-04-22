@@ -42,9 +42,20 @@ LR = .0005
 BUFFER_SIZE = 50000
 max_timesteps = 1000
         
-        second: Tried once without any max_timesteps
+        second: Tried with NO max_timesteps
 10k ep
 BATCH_SIZE = 64
+GAMMA = 0.99
+EPS_START = 1.0
+EPS_END = 0.01
+EPS_DECAY = 996
+TAU = 0.003
+LR = .0005
+BUFFER_SIZE = 50000
+
+        third: saved policy net for MCTS use (NO max_timesteps)
+5k ep
+BATCH_SIZE = 128
 GAMMA = 0.99
 EPS_START = 1.0
 EPS_END = 0.01

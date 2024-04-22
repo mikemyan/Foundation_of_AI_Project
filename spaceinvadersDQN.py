@@ -155,7 +155,7 @@ def preprocess(state):
 # LR is the learning rate of the ``AdamW`` optimizer
 
 
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 GAMMA = 0.99
 EPS_START = 1.0
 EPS_END = 0.01
@@ -352,11 +352,11 @@ for i_episode in range(num_episodes):
 print('Complete')
 plot_scores(episode_scores, show_result=True)
 plt.ioff()
-plt.savefig('spaceinvadersDQN_training_scores_10000.png')
+plt.savefig('spaceinvadersDQN_training_scores_b128_5000_FOR_MCTS.png')
 plt.show()
 
 # torch.save(target_net.state_dict(), "target_net_weights_LUNAR.pth")
-# torch.save(policy_net.state_dict(), "policy_net_weights_LUNAR.pth")
+torch.save(policy_net.state_dict(), "policy_net_weights_LUNAR.pth")
 
 
 #***TESTING***
