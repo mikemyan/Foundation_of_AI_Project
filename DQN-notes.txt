@@ -1,6 +1,7 @@
 "10000" file output parameters:
 
-cartpole:
+    cartpole:
+        first params:
 10k episodes
 BATCH_SIZE = 128
 GAMMA = 0.99
@@ -10,9 +11,26 @@ EPS_DECAY = 1000
 TAU = 0.005
 LR = .0001
 
-lunar lander:
+        second params:
+10k ep
+BATCH_SIZE = 32 ---- HORRIBLE -> ends up forgetting
+GAMMA = 0.99
+EPS_START = 0.9
+EPS_END = 0.05
+EPS_DECAY = 1000
+TAU = 0.005
+LR = .0001
 
-space inavders:
+    
+    
+    lunar lander:
+
+
+
+
+
+    space inavders:
+        first
 10k episodes
 BATCH_SIZE = 64
 GAMMA = 0.99
@@ -23,3 +41,14 @@ TAU = 0.003
 LR = .0005
 BUFFER_SIZE = 50000
 max_timesteps = 1000
+        
+        second: Tried once without any max_timesteps
+10k ep
+BATCH_SIZE = 64
+GAMMA = 0.99
+EPS_START = 1.0
+EPS_END = 0.01
+EPS_DECAY = 996
+TAU = 0.003
+LR = .0005
+BUFFER_SIZE = 50000
