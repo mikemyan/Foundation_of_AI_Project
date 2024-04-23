@@ -42,8 +42,8 @@ def choose_action(state):
 
 def main():
     optimizer = optim.RMSprop(net.parameters(), lr=0.003)
-    env = gym.make('CartPole-v1', render_mode="human")
-    num_episodes = 500
+    env = gym.make('CartPole-v1')
+    num_episodes = 10000
     max_steps = 500
     gamma = 0.99
     reward_threshold = 499
