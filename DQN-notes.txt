@@ -29,7 +29,7 @@ LR = .0001
 
 
 
-    space inavders:
+    space invaders:
         first
 10k episodes
 BATCH_SIZE = 64
@@ -54,7 +54,18 @@ LR = .0005
 BUFFER_SIZE = 50000
 
         third: saved policy net for MCTS use (NO max_timesteps)
-5k ep
+10k ep
+BATCH_SIZE = 128
+GAMMA = 0.99
+EPS_START = 1.0
+EPS_END = 0.01
+EPS_DECAY = 996
+TAU = 0.003
+LR = .0005
+BUFFER_SIZE = 50000
+
+        fourth: TRYING WITH HUBER LOSS INSTEAD OF MSE 
+10k ep
 BATCH_SIZE = 128
 GAMMA = 0.99
 EPS_START = 1.0

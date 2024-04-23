@@ -155,7 +155,7 @@ def preprocess(state):
 # LR is the learning rate of the ``AdamW`` optimizer
 
 
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 GAMMA = 0.99
 EPS_START = 1.0
 EPS_END = 0.01
@@ -271,8 +271,8 @@ def optimize_model():
     # Compute the expected Q values
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
-    # Compute MSE LOSS
-    criterion = nn.MSELoss()
+    # Compute HUBER LOSS
+    criterion = nn.SmoothL1Loss()
     loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
     # Optimize the model
@@ -352,11 +352,8 @@ for i_episode in range(num_episodes):
 print('Complete')
 plot_scores(episode_scores, show_result=True)
 plt.ioff()
-plt.savefig('spaceinvadersDQN_training_scores_b128_5000_FOR_MCTS.png')
+plt.savefig('spaceinvadersDQN_scores_b128HUBER_10000.png')
 plt.show()
 
 # torch.save(target_net.state_dict(), "target_net_weights_LUNAR.pth")
-torch.save(policy_net.state_dict(), "policy_net_weights_LUNAR.pth")
-
-
-#***TESTING***
+torch.save(policy_net.state_dict(), "policy_net_weights_SPACEINV_HUBER.pth")
