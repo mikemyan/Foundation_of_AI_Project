@@ -13,18 +13,23 @@ from collections import namedtuple
 class ActorCriticNet(nn.Module):
     def __init__(self):
         super(ActorCriticNet, self).__init__()
-        self.fc1 = nn.Linear(4, 128)
-        self.fc2 = nn.Linear(128, 64)
-        # Represents neural nets for policy approximation
-        self.fc3_1 = nn.Linear(64, 2)
-        # Represents neural nets for value function approximation
-        self.fc3_2 = nn.Linear(64, 1)
+        self.fc1 = nn.Linear(8, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3_1 = nn.Linear(128, 4)
+        self.fc3_2 = nn.Linear(128, 1)
+        self.dropout = nn.Dropout(p = 0.1)
+        self.prelu = nn.PReLU()
+
         self.saved_actions = []
         self.rewards = []
     
     def feed_forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+        x = self.fc1(x)
+        self.dropout(x)
+        x = self.prelu(x)
+        x = self.fc2(x)
+        self.dropout(x)
+        x = self.prelu(x)
         action_scores = self.fc3_1(x)
         state_values = self.fc3_2(x)
         prob_dist_over_actions = F.softmax(action_scores, dim=-1)
@@ -41,12 +46,12 @@ def choose_action(state):
     return action.item(), distribution.log_prob(action), state_value
 
 def main():
-    optimizer = optim.RMSprop(net.parameters(), lr=0.003)
-    env = gym.make('CartPole-v1')
+    optimizer = optim.Adam(net.parameters(), lr=0.0005)
+    env = gym.make("LunarLander-v2")
     num_episodes = 10000
-    max_steps = 500
+    # max_steps = 1000
     gamma = 0.99
-    reward_threshold = 499
+    reward_threshold = 200
     log_interval = 10
     running_reward = []
     for i_episode in range(num_episodes):
@@ -57,7 +62,8 @@ def main():
         rewards = []
         episode_rewards = []
         break_all_episodes = False
-        for t in range(max_steps):
+        # for t in range(max_steps):
+        while True:
             # Choose an action, and get the log probability and state value
             action, log_prob, state_value = choose_action(state)
             log_probs.append(log_prob)
@@ -66,13 +72,16 @@ def main():
             state, reward, terminated, truncated, info = env.step(action)
             rewards.append(reward)
             episode_rewards.append(reward)
-            if t == 499 and not terminated:
-                print("Episode {} forced to terminate at time step 500".format(i_episode))
-                print("Total reward: ", sum(rewards))
-            if sum(rewards) > reward_threshold:
-                break_all_episodes = True
+            # if t == 499 and not terminated:
+            #     print("Episode {} forced to terminate at time step 499".format(i_episode))
+            #     print("Total reward: ", sum(rewards))
 
-            if terminated:
+            
+            # if sum(rewards) > reward_threshold:
+            #     break_all_episodes = True
+            #     break
+
+            if terminated or truncated:
                 # Calculate the discounted rewards
                 R = 0
                 returns = []
@@ -95,9 +104,10 @@ def main():
                 optimizer.step()
 
                 
-                if i_episode % 10 == 0:                
-                    print("Episode {} finished after {} timesteps".format(i_episode, t + 1))
-                    print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(i_episode, t, sum(rewards)))
+                if i_episode % 10 == 0:
+                    print("Episode {} terminated".format(i_episode))
+                    # print("Episode {} finished after {} timesteps".format(i_episode, t + 1))
+                    # print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(i_episode, t, sum(rewards)))
                 del log_probs[:]
                 del values[:]
                 del rewards[:]
@@ -105,11 +115,12 @@ def main():
         running_reward.append(sum(episode_rewards))
         print("total running reward: ", sum(episode_rewards))
         print("running reward length: ", len(running_reward))
-        print("running reward: ", running_reward)
-                
+        if i_episode % log_interval == 0:
+            print("running reward avg: ", np.mean(running_reward)) 
         if break_all_episodes:
-            print("Solved! Running reward is now {} and the last episode runs to {} time steps!".format(sum(rewards), t))
-            # break
+            # print("Solved! Running reward is now {} and the last episode runs to {} time steps!".format(sum(rewards), t))
+            print("Solved! Running reward is now {}!".format(sum(rewards)))
+            break
     env.close()
     fig, ax = plt.subplots()
     ax.plot(running_reward, label='Reward')
@@ -118,15 +129,15 @@ def main():
     ax.set_ylabel('Reward')
     ax.legend()
     #plt.show()
-    plt.savefig('culmulative_rewards_over_time_A2C.png')
+    plt.savefig('culmulative_rewards_over_time_lunar_lander_A2C.png')
 
 if __name__ == '__main__':
     main()
-# env = gym.make('CartPole-v1', render_mode="human")
+# import gymnasium as gym
+# env = gym.make("LunarLander-v2", render_mode="human")
+
 
 # observation, info = env.reset()
-# x = np.array(observation)
-
 
 # for _ in range(1000):
 #     action = env.action_space.sample()  # agent policy that uses the observation and info
