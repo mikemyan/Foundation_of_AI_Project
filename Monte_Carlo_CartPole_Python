@@ -1,0 +1,247 @@
+import numpy as np
+import random
+import matplotlib.pyplot as plt
+import gym
+from IPython.display import clear_output
+from copy import deepcopy
+from math import *
+from collections import deque
+
+
+# setting up gym environment
+env = gym.make('CartPole-v1')
+env_ACTIONS = env.action_space.n
+env_OBS = env.observation_space.shape[0]
+env.reset()
+
+# number of episodes to train 
+episodes = 10000
+
+# track rewards
+rewards = []
+
+# track moving average
+moving_average = []
+
+# parameter to change exploration vs. exploitation
+Depth_Policy = 100
+
+c = 1.0
+
+class Node:
+    
+    def __init__(self, env, done, parent, observation, action_index):
+        # rewards obtained from child nodes to this
+        self.T = 0
+        
+        # child nodes
+        self.child = None
+                
+         # actions that led to this node bdeing created
+        self.action_index = action_index
+        
+        # current observation state
+        self.observation = observation
+        
+        # keeping track if the environment is terminated or truncated
+        self.done = done
+
+        # pointer to parent node
+        self.parent = parent
+        
+       # number of times this node has been visitied
+        self.N = 0   
+        
+        # the environment
+        self.env = env
+    
+        
+    # calculate UCB using child and parent nodes
+    def generateUCB(self):
+        
+        # no values means infinity
+        if self.N == 0:
+            return float('inf')
+        
+        top_node = self
+        if top_node.parent:
+            top_node = top_node.parent
+            
+        # UCB formula
+        return (self.T / self.N) + c * sqrt(log(top_node.N) / self.N)
+    
+    
+    def detach_parent(self):
+        del self.parent
+        self.parent = None
+       
+    # create child node and give it a value
+    def create_child(self):
+        
+        # if node was a terminal state, return it
+        if self.done:
+            return
+    
+    # calculate value of child node
+        actions = []
+        envs = []
+        for i in range(env_ACTIONS): 
+            actions.append(i)           
+            new_env = deepcopy(self.env)
+            envs.append(new_env)
+            
+        child = {} 
+        for action, env in zip(actions, envs):
+            observation, reward, terminated, truncated, _ = env.step(action)
+            done = terminated or truncated
+            child[action] = Node(env, done, self, observation, action)                        
+            
+        self.child = child
+                
+   # explore the tree by choosing children with max values
+   # create a new node if exploring a new state
+   # back propagate statistics when done         
+    def explore(self): 
+        current = self
+        
+        while current.child:
+
+            child = current.child
+            max_U = max(c.generateUCB() for c in child.values())
+            actions = [ a for a,c in child.items() if c.generateUCB() == max_U ]
+            if len(actions) == 0:
+                print("error zero length ", max_U)                      
+            action = random.choice(actions)
+            current = child[action]
+            
+        # play a random env, or expand if needed           
+        if current.N < 1:
+            current.T = current.T + current.rollout()
+        else:
+            current.create_child()
+            if current.child:
+                current = random.choice(current.child)
+            current.T = current.T + current.rollout()
+            
+        current.N += 1      
+                
+        # update statistics and backpropagate
+        parent = current
+            
+        while parent.parent:
+            
+            parent = parent.parent
+            parent.N += 1
+            parent.T = parent.T + current.T           
+            
+            
+    # select a random action available to the node
+    def rollout(self):
+        
+        if self.done:
+            return 0        
+        
+        v = 0
+        done = False
+        new_env = deepcopy(self.env)
+        while not done:
+            action = new_env.action_space.sample()
+            new_env_step = new_env.step(action)
+            #print("new_env_step", new_env_step)
+            #print("new_env_step[0]", new_env_step[0])
+            observation, reward, terminated, truncated, _ = new_env_step
+            done = terminated or truncated
+            # observation = new_env_step[0]
+            # reward = new_env_step[1]
+            # done = new_env_step[2]
+            
+            v = v + reward
+            if done:
+                new_env.reset()
+                new_env.close()
+                break             
+        #print("v", v)
+        return v
+
+    
+    def next(self):
+        if self.done:
+            raise ValueError("env has ended")
+
+        if not self.child:
+            raise ValueError('no children found and env hasn\'t ended')
+        
+        child = self.child
+        
+        max_N = max(node.N for node in child.values())
+       
+        max_children = [ c for a,c in child.items() if c.N == max_N ]
+        
+        if len(max_children) == 0:
+            print("error zero length ", max_N) 
+            
+        max_child = random.choice(max_children)
+        
+        return max_child, max_child.action_index
+    
+# explore the tree based on the depth policy set
+# choose the best possible action from the current node
+def Policy_Player_MCTS(mytree):  
+    for i in range(Depth_Policy):
+        mytree.explore()
+        
+    next_tree, next_action = mytree.next()
+    
+    next_tree.detach_parent()
+    
+    return next_tree, next_action
+
+def main():
+    for e in range(episodes):
+
+        reward_e = 0    
+        observation = env.reset() 
+        done = False
+        
+        new_env = deepcopy(env)
+        mytree = Node(new_env, False, 0, observation, 0)
+        
+        print('episode #' + str(e+1))
+        
+        while not done:
+        
+            mytree, action = Policy_Player_MCTS(mytree)
+            
+            observation, reward, terminated, truncated, _ = env.step(action)  
+            done = terminated or truncated
+            reward_e = reward_e + reward
+                                
+            if done:
+                print('reward_e ' + str(reward_e))
+                env.close()
+                break
+            
+        rewards.append(reward_e)
+        moving_average.append(np.mean(rewards[-100:]))
+        
+        if (e % 100 == 0):
+            plt.plot(rewards, label='Reward')
+            plt.plot(moving_average, label='Moving Average', linestyle='--')
+            plt.xlabel('Episode')
+            plt.ylabel('Reward')
+            plt.legend()
+            plt.savefig("MCTS_cartpole_{}".format(e))
+            plt.clf()
+    
+    # print final graph after training is complete
+    plt.plot(rewards, label='Reward')
+    plt.plot(moving_average, label='Moving Average', linestyle='--')
+    plt.xlabel('Episode')
+    plt.ylabel('Reward')
+    plt.legend()
+    plt.show()
+    plt.savefig("MCTS_cartpole_results")
+
+    print('moving average: ' + str(np.mean(rewards[-20:])))
+if __name__ == "__main__":
+    main()

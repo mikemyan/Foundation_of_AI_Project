@@ -1,0 +1,182 @@
+import numpy as np
+import gym
+import random
+import math
+import matplotlib.pyplot as plt
+from utils import moving_average
+
+env = gym.make('LunarLander-v2')
+
+# setting parameters for lunar lander
+
+# number of epochs
+n_times = 1
+
+# total number of episodes to train
+total_train_episodes = 100
+
+# tuning parameters
+gamma = 0.99                     
+max_epsilon = 1.0
+min_epsilon = 0.01  
+
+
+# bucketization functions. This is necessary to discretize the observation state for MCTS. 
+# this makes the observation state is within the correct bounds and represents each value
+# in the observation vector as an integer
+# credit to: https://github.com/omargup/Lunar-Lander/blob/master/Monte_Carlo_LunarLander.ipynb
+# for helping me understand the bucketization/discretization
+
+#set_buckets_and_actions():
+number_of_buckets = (5,5,5,5,5,5,2,2) #buckets in each dimension
+number_of_actions = env.action_space.n
+
+#Creating a 2-tuple with the original bounds of each dimension
+state_value_bounds = list(zip(env.observation_space.low,env.observation_space.high))
+
+#New bound values for each dimension
+state_value_bounds[0] = [-1,1]      #Position x
+state_value_bounds[1] = [-1,1]    #Position y
+state_value_bounds[2] = [-1,1]        #vel x
+state_value_bounds[3] = [-1,1]    #vel y
+state_value_bounds[4] = [-1,1]        #angle
+state_value_bounds[5] = [-1,1]        #angular vel
+state_value_bounds[6] = [0,1]
+state_value_bounds[7] = [0,1]
+
+#number_of_buckets, number_of_actions, state_value_bounds
+
+def bucketize(state):
+    bucket_indexes = []
+    for i in range(len(state)):
+        if state[i] <= state_value_bounds[i][0]:
+            bucket_index = 0
+        elif state[i] >= state_value_bounds[i][1]:
+            bucket_index = number_of_buckets[i] - 1
+        else:
+            bound_width = state_value_bounds[i][1] - state_value_bounds[i][0]
+            offset = (number_of_buckets[i]-1) * state_value_bounds[i][0]/bound_width
+            scaling = (number_of_buckets[i]-1) / bound_width
+            bucket_index = int(round(scaling*state[i] - offset))
+        bucket_indexes.append(bucket_index)
+    return tuple(bucket_indexes)
+
+# create q table
+def create_q_table():
+    return np.zeros(number_of_buckets + (number_of_actions,))
+
+ # create returns table
+def create_visits_table():
+    return np.zeros(number_of_buckets + (number_of_actions,))
+
+# decay function decreases values of future episodes
+def decay_function(episode):
+    return max(min_epsilon, min(max_epsilon, 1.0 - 
+                              math.log10((episode + 1) / (total_train_episodes*0.1))))
+
+# choose exploration or exploitation action
+def choose_action(q_table, bucket_state, epsilon):
+    
+    if (np.random.random() <= epsilon):
+        return env.action_space.sample() #Exploration
+    else:
+        return np.argmax(q_table[bucket_state]) #Exploitation
+    
+    
+# Generate an episode of MCTS
+# Sets reward to 0 and bucketizes initial environment
+# simulates possible actions in each step
+# as the algorithm progresses, it learns the states it has accessed and makes better decisions in future states
+# as the tree is explored
+def Generate_episode(epsilon, q_table, max_env_steps):
+    # Control variables
+    total_reward = 0
+    done = False
+        
+    trajectory = []
+        
+    # Create initial state and bucketize it
+    env_reset, _ = env.reset()
+    bucket_state = bucketize(env_reset)
+
+    # Loop for each step of episode:
+    for step in range(max_env_steps):
+
+        # Choose an exploitative or exploration action for the simulation
+        action = choose_action(q_table, bucket_state, epsilon)
+
+        # Take the action A, observe R, S'
+        new_state, reward, terminated, truncated, info = env.step(action)
+        done = terminated or truncated
+        bucket_new_state = bucketize(new_state)
+            
+        trajectory.append([bucket_state, action, reward])
+            
+        # new_state is now the current state
+        bucket_state = bucket_new_state
+
+        total_reward += reward
+
+        # if done, finish the episode
+        if done:
+            break
+    
+    return trajectory, total_reward
+
+# monte carlo algorithm
+def Monte_Carlo():
+    
+    # create q table to store Q(s,a) data as the tree is explored
+    q_table = create_q_table()
+    
+    # keep track of states that are visited
+    number_of_visits = create_visits_table()
+    
+    # rewards array to track rewards
+    rewards = []
+    max_env_steps = env._max_episode_steps   #1000 in LunarLander
+
+    for episode in range(total_train_episodes):
+        
+        #Update epsilon
+        epsilon = decay_function(episode)
+        trajectory ,total_reward = Generate_episode(epsilon, q_table, max_env_steps)
+        G = 0
+        
+        # simulate possible actions in future states
+        for t in reversed(range(len(trajectory))):
+            s_t, a_t, r_t = trajectory[t]
+
+            # update gamma
+            G = gamma*G + r_t
+            
+            # if the state has not been visited yet, simulate it and keep track of it 
+            if not [s_t, a_t] in [[x[0], x[1]] for x in trajectory[0:t]]:
+                number_of_visits[s_t][a_t] += 1
+                q_table[s_t][a_t] += (G - q_table[s_t][a_t]) / number_of_visits[s_t][a_t]
+                  
+        rewards.append(total_reward)
+        
+        if episode % 50 == 0:
+            print("Episode {}, epsilon {:5.4f}, reward {:6.2f}".format(episode,epsilon,total_reward))  
+    
+    print("Episode {}, epsilon {:5.4f}, reward {:6.2f}".format(episode,epsilon,total_reward))
+    return q_table, rewards
+
+
+
+def main():    
+  
+
+
+    for number in range(n_times):
+        print("\n ********** Training number ", number)
+        q_table,rewards = Monte_Carlo()
+
+    plt.plot(rewards, label='Reward')
+    plt.plot(moving_average(rewards, 10), label='Average', linestyle='--')
+    plt.legend()
+    plt.show()
+
+if __name__ == "__main__":
+    main()
