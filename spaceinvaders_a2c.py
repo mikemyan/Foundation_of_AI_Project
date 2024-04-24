@@ -132,7 +132,7 @@ def stack_frame(stacked_frames, frame, is_new):
     return stacked_frames
 
 def main():
-    num_episodes = 10000
+    num_episodes = 5000
     max_steps = 1000
     gamma = 0.99
     reward_threshold = 999

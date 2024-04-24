@@ -19,8 +19,6 @@ class ActorCriticNet(nn.Module):
         self.fc3_1 = nn.Linear(64, 2)
         # Represents neural nets for value function approximation
         self.fc3_2 = nn.Linear(64, 1)
-        self.saved_actions = []
-        self.rewards = []
     
     def feed_forward(self, x):
         x = F.relu(self.fc1(x))
