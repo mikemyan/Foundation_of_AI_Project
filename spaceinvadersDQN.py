@@ -155,7 +155,7 @@ def preprocess(state):
 # LR is the learning rate of the ``AdamW`` optimizer
 
 
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 GAMMA = 0.99
 EPS_START = 1.0
 EPS_END = 0.01
@@ -270,6 +270,8 @@ def optimize_model():
         next_state_values[non_final_mask] = target_net(non_final_next_states).max(1).values
     # Compute the expected Q values
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+
+    #MAYBE MSE IS BETTER
 
     # Compute HUBER LOSS
     criterion = nn.SmoothL1Loss()
